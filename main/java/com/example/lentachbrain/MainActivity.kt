@@ -1,15 +1,18 @@
 package com.example.lentachbrain
 
+import android.annotation.TargetApi
 import android.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.content.DialogInterface
+import android.os.Build
 import android.os.StrictMode
-import android.util.Log
 import android.util.Xml
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.*
-import kotlinx.android.synthetic.main.activity_main.*
+import androidx.constraintlayout.solver.widgets.ConstraintWidgetContainer
+import kotlinx.android.extensions.ContainerOptions
 import org.xml.sax.SAXException
 import org.xmlpull.v1.XmlPullParser
 import java.io.IOException
@@ -44,65 +47,59 @@ class MainActivity : AppCompatActivity() {
                 rssResult += cdata.trim().replace("\\s+", " ")+"\t"
         }
     }*/
-
     class RssFeedModel(title: String, link: String, description: String) {
         var title = title
         var link = link
         var description = description
-        fun get(): List<String> {
-            var result: List<String> = listOf(title, link, description)
-            return result
-        }
     }
-    fun parseFeed(inputStream: InputStream): List<RssFeedModel> {
+    fun parseFeed(inputStream: InputStream): MutableList<RssFeedModel> {
         var title = ""
         var link = ""
         var description = ""
         var isItem = false
-        var items: List<RssFeedModel> = ArrayList()
+        var items: MutableList<RssFeedModel> = mutableListOf(RssFeedModel("no info", "", ""))
         try {
             var xmlPullParser: XmlPullParser = Xml.newPullParser()
             xmlPullParser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
             xmlPullParser.setInput(inputStream, null)
-
             xmlPullParser.nextTag()
             while (xmlPullParser.next() != XmlPullParser.END_DOCUMENT) {
                 var eventType = xmlPullParser.eventType
-                var name: String? = xmlPullParser.name ?: continue
+                var name: String
+                name = xmlPullParser.name ?: continue
                 if (eventType == XmlPullParser.END_TAG) {
-                    if (name != null) {
+                    if (name != "") {
                         if (name.equals("item", ignoreCase = true)) {
                             isItem = false
                         }
                     }
-                    continue
                 }
                 if (eventType == XmlPullParser.START_TAG) {
                     if (name.equals("item", ignoreCase = true)) {
                         isItem = true
                     }
-                    continue
                 }
-                var result: String = ""
+                var result = ""
                 if (xmlPullParser.next() == XmlPullParser.TEXT) {
                     result = xmlPullParser.text
-                    xmlPullParser.nextTag()
+                    //xmlPullParser.nextTag()
                 }
-                if (name.equals("title", true)) {
-                    title = result
-                } else if (name.equals("link", true)) {
-                    link = result
-                } else if (name.equals("description", true)) {
-                    description = result
+                /*} else {
+                        items.add(RssFeedModel("", "", ""))*/
+                when {
+                    name.equals("title", true) -> {
+                        title = result
+                    }
+                    name.equals("link", true) -> {
+                        link = result
+                    }
+                    name.equals("description", true) -> {
+                        description = result
+                    }
                 }
                 if ((title != "") && (link != "") && (description != "")) {
                     if (isItem) {
-                        var item = RssFeedModel(title, link, description)
-                        items += item
-                    } else {
-                        feedTitle.text = title
-                        feedLink.text = link
-                        feedDescription.text = description
+                        items.add(RssFeedModel(title, link, description))
                     }
 
                     title = ""
@@ -112,43 +109,40 @@ class MainActivity : AppCompatActivity() {
 
                 }
             }
-            return items
-        } finally {
+
+        }
+        catch(e: Exception) {
+            items = listOf(RssFeedModel(e.toString(), "", "")).toMutableList()
+        }
+        finally {
             inputStream.close()
+            return items
         }
     }
 
     fun rssView(finalText: TextView): List<RssFeedModel> {
         var rssUrl: URL
-        var result: String
-        var parsedList: List<RssFeedModel>
+        var parsedList: MutableList<RssFeedModel>
         try {
             rssUrl = URL(finalText.text.toString())
             var inputSource: InputStream = rssUrl.openConnection().getInputStream()
             parsedList = parseFeed(inputSource)
 
-        } catch (e: IOException) {
-            parsedList = listOf(RssFeedModel(e.message.toString(), "", ""))
-        } catch (e: SAXException) {
-            parsedList = listOf(RssFeedModel(e.message.toString(), "", ""))
-        } catch (e: ParserConfigurationException) {
-            parsedList = listOf(RssFeedModel(e.message.toString(), "", ""))
+        } catch (e: Exception) {
+            parsedList = mutableListOf(RssFeedModel(e.toString(), "", ""))
         }
         return parsedList
     }
-
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        var mFeedTitle: TextView = findViewById(R.id.feedTitle)
-        var mFeedLink: TextView = findViewById(R.id.feedLink)
-        var mFeedDescription: TextView = findViewById(R.id.feedDescription)
-        var policy: StrictMode.ThreadPolicy = StrictMode.ThreadPolicy.Builder().permitAll().build()
+        val policy: StrictMode.ThreadPolicy = StrictMode.ThreadPolicy.Builder().permitAll().build()
         StrictMode.setThreadPolicy(policy)
-        var button: Button = findViewById(R.id.addRSSButton)
+        val button: Button = findViewById(R.id.addRSSButton)
 
-        var feedModelList: List<RssFeedModel>
+        //var feedModelList: List<RssFeedModel>
 
 
 
@@ -156,7 +150,7 @@ class MainActivity : AppCompatActivity() {
         button.setOnClickListener {
             val li: LayoutInflater = LayoutInflater.from(this)
             var promptView = li.inflate(R.layout.prompt, null)
-            var iLayout: LinearLayout = findViewById(R.id.linear)
+            var iLayout: LinearLayout = findViewById(R.id.rssScrollLayout)
             var mBuilder = AlertDialog.Builder(this)
             mBuilder.setView(promptView)
             var userUrlInput = promptView.findViewById<EditText>(R.id.urlRSS)
@@ -164,19 +158,29 @@ class MainActivity : AppCompatActivity() {
             val positiveButtonClick = { dialog: DialogInterface,
                                         _: Int ->
                 dialog.cancel()
-                var parsedList = rssView(finalText = userUrlInput)
-                for (i in 0..parsedList.size) {
-                    var rowTitle: TextView = TextView(this)
-                    var rowDescription: TextView = TextView(this)
-                    var rowLink: TextView = TextView(this)
-                    rowTitle.text = parsedList[i].title
-                    rowDescription.text = parsedList[i].description
-                    rowLink.text = parsedList[i].link
-                    iLayout.addView(rowTitle)
-                    iLayout.addView(rowDescription)
-                    iLayout.addView(rowLink)
+                try{
 
+                    var parsedList = rssView(finalText = userUrlInput)
+                    for (i in 2 until parsedList.size) {
+                        var rowTitle = TextView(this)
+                        var rowDescription = TextView(this)
+                        var rowLink = TextView(this)
+                        //if (rowLink.text.contains((regex))) {System.out.println("yooo")}
+                        //var list = mutableListOf(rowTitle, rowDescription, rowLink)
+
+                        rowTitle.text = "title"+parsedList[i].title
+                        //rowTitle.fontFeatureSettings = "'color' 00FF00"
+                        rowDescription.text = "desc"+parsedList[i].description
+                        rowLink.text = "link"+parsedList[i].link
+
+                        iLayout.addView(rowTitle)
+                        iLayout.addView(rowDescription)
+                        iLayout.addView(rowLink)
                 }
+                }catch(e: Exception){
+                    var exceptionText = TextView(this)
+                    exceptionText.text = e.toString()
+                    iLayout.addView(exceptionText)}
             }
 
             mBuilder.setCancelable(true)
@@ -186,52 +190,4 @@ class MainActivity : AppCompatActivity() {
         }
     }
 }
-    /*private inner class FetchFeedTask : AsyncTask<Void, Void, Boolean>() {
-
-        private var urlLink: String? = null
-
-        override fun onPreExecute() {
-            mSwipeLayout.setRefreshing(true)
-            urlLink = mEditText.getText().toString()
-        }
-
-        override fun doInBackground(vararg voids: Void): Boolean? {
-            if (TextUtils.isEmpty(urlLink))
-                return false
-
-            try {
-                if (!urlLink!!.startsWith("http://") && !urlLink!!.startsWith("https://"))
-                    urlLink = "http://" + urlLink!!
-
-                val url = URL(urlLink!!)
-                val inputStream = url.openConnection().getInputStream()
-                mFeedModelList = parseFeed(inputStream)
-                return true
-            } catch (e: IOException) {
-                Log.e(FragmentActivity.TAG, "Error", e)
-            } catch (e: XmlPullParserException) {
-                Log.e(FragmentActivity.TAG, "Error", e)
-            }
-
-            return false
-        }
-
-        override fun onPostExecute(success: Boolean?) {
-            mSwipeLayout.setRefreshing(false)
-
-            if (success!!) {
-                mFeedTitleTextView.setText("Feed Title: $mFeedTitle")
-                mFeedDescriptionTextView.setText("Feed Description: $mFeedDescription")
-                mFeedLinkTextView.setText("Feed Link: $mFeedLink")
-                // Fill RecyclerView
-                mRecyclerView.setAdapter(RssFeedListAdapter(mFeedModelList))
-            } else {
-                Toast.makeText(
-                    this@MainActivity,
-                    "Enter a valid Rss feed url",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-    }*/
 

@@ -2,9 +2,6 @@
     <string name="app_name">lentachBrain</string>
     <string name="put_url">add RSS url</string>
     <string name="url">url</string>
-    <string name="feed_link">Feed Link:</string>
-    <string name="feed_description">Feed Description:</string>
-    <string name="feed_title">Feed Title:</string>
     <string name="feed_title">Feed Title:</string>
     <string name="feed_description">Feed Description:</string>
     <string name="feed_link">Feed Link:</string>

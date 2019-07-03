@@ -11,8 +11,8 @@
             android:layout_width="227dp"
             android:layout_height="wrap_content"
             android:text="@string/put_url"
-            android:textAppearance="@style/TextAppearance.AppCompat.Large" android:gravity="center"/>
-
+            android:textAppearance="@style/TextAppearance.AppCompat.Large" android:gravity="center"
+    />
     <EditText
             android:hint="@string/url"
             android:id="@+id/urlRSS"
