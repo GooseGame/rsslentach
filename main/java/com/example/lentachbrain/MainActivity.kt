@@ -5,59 +5,37 @@ import android.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.content.DialogInterface
+import android.graphics.BitmapFactory
+import android.graphics.Typeface
+import android.media.Image
 import android.os.Build
 import android.os.StrictMode
+import android.text.util.Linkify
+import android.text.util.Linkify.WEB_URLS
 import android.util.Xml
 import android.view.LayoutInflater
-import android.view.View
 import android.widget.*
-import androidx.constraintlayout.solver.widgets.ConstraintWidgetContainer
-import kotlinx.android.extensions.ContainerOptions
-import org.xml.sax.SAXException
+import com.squareup.picasso.Picasso
 import org.xmlpull.v1.XmlPullParser
-import java.io.IOException
 import java.io.InputStream
 import java.net.URL
-import javax.xml.parsers.ParserConfigurationException
 
 
 class MainActivity : AppCompatActivity() {
 
-    /*class RSSHandler : DefaultHandler() {
-        var rssResult = ""
-        var rssTitle = ""
-        var isFirstTitle = true
-        var rssArray: Array<String> = arrayOf(rssTitle, rssResult)
-        override fun startElement(uri: String, localName: String, qname: String, attributes: Attributes) {
-            if ((localName == "title") && (isFirstTitle)) {
-                 rssTitle = qname
-                isFirstTitle = false
-            }
-            else if (localName == "title") {
-
-            }
-        }
-
-        override fun endElement(uri: String?, localName: String?, qName: String?) {
-            rssResult = ""
-        }
-
-        override fun characters(ch: CharArray, start: Int, length: Int) {
-            var cdata = String(ch, start, length)
-                rssResult += cdata.trim().replace("\\s+", " ")+"\t"
-        }
-    }*/
-    class RssFeedModel(title: String, link: String, description: String) {
+    class RssFeedModel(title: String, link: String, description: String, image: String) {
         var title = title
         var link = link
         var description = description
+        var image = image
     }
     fun parseFeed(inputStream: InputStream): MutableList<RssFeedModel> {
         var title = ""
         var link = ""
         var description = ""
+        var image = ""
         var isItem = false
-        var items: MutableList<RssFeedModel> = mutableListOf(RssFeedModel("no info", "", ""))
+        var items: MutableList<RssFeedModel> = mutableListOf(RssFeedModel("no info", "", "", ""))
         try {
             var xmlPullParser: XmlPullParser = Xml.newPullParser()
             xmlPullParser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
@@ -82,37 +60,49 @@ class MainActivity : AppCompatActivity() {
                 var result = ""
                 if (xmlPullParser.next() == XmlPullParser.TEXT) {
                     result = xmlPullParser.text
-                    //xmlPullParser.nextTag()
                 }
-                /*} else {
-                        items.add(RssFeedModel("", "", ""))*/
-                when {
-                    name.equals("title", true) -> {
-                        title = result
-                    }
-                    name.equals("link", true) -> {
-                        link = result
-                    }
-                    name.equals("description", true) -> {
-                        description = result
+                if (name.equals("title", true)) {
+                    title = result
+                    if (xmlPullParser.next() == XmlPullParser.TEXT) {
+                        result = xmlPullParser.text
                     }
                 }
-                if ((title != "") && (link != "") && (description != "")) {
+                if (name.equals("description", true)) {
+                    description = result
+                    if (xmlPullParser.next() == XmlPullParser.TEXT) {
+                        result = xmlPullParser.text
+                    }
+                }
+                if (name.equals("link", true)) {
+                    link = result
+                    if (xmlPullParser.next() == XmlPullParser.TEXT) {
+                        result = xmlPullParser.text
+                    }
+                }
+                if ((name.equals("image", true)) || (name.equals("img", true))) {
+
+                    image = result
+                    if (xmlPullParser.next() == XmlPullParser.TEXT) {
+                        result = xmlPullParser.text
+                    }
+                }
+                if ((title != "") && (description != "")) {
                     if (isItem) {
-                        items.add(RssFeedModel(title, link, description))
+                        items.add(RssFeedModel(title, link, description, image))
+
+                        isItem = false
                     }
 
                     title = ""
                     link = ""
                     description = ""
-                    isItem = false
 
                 }
             }
 
         }
         catch(e: Exception) {
-            items = listOf(RssFeedModel(e.toString(), "", "")).toMutableList()
+            items.add(RssFeedModel(e.toString(), "", "", ""))
         }
         finally {
             inputStream.close()
@@ -129,7 +119,7 @@ class MainActivity : AppCompatActivity() {
             parsedList = parseFeed(inputSource)
 
         } catch (e: Exception) {
-            parsedList = mutableListOf(RssFeedModel(e.toString(), "", ""))
+            parsedList = mutableListOf(RssFeedModel("", "", "", ""),RssFeedModel(e.toString(), "", "", ""))
         }
         return parsedList
     }
@@ -161,21 +151,36 @@ class MainActivity : AppCompatActivity() {
                 try{
 
                     var parsedList = rssView(finalText = userUrlInput)
-                    for (i in 2 until parsedList.size) {
+                    for (i in 1 until parsedList.size) {
                         var rowTitle = TextView(this)
                         var rowDescription = TextView(this)
                         var rowLink = TextView(this)
-                        //if (rowLink.text.contains((regex))) {System.out.println("yooo")}
-                        //var list = mutableListOf(rowTitle, rowDescription, rowLink)
+                        var imageLink = parsedList[i].image
+                        var rowImage = ImageView(this)
+                        //var imageVal = BitmapFactory.decodeStream(imageLink.openConnection().getInputStream())
+                        //var rowImage: ImageView = ImageView.
+                        rowTitle.text = parsedList[i].title
+                        rowTitle.typeface = Typeface.DEFAULT_BOLD
+                        rowDescription.text =  parsedList[i].description
+                        rowLink.text = parsedList[i].link
 
-                        rowTitle.text = "title"+parsedList[i].title
-                        //rowTitle.fontFeatureSettings = "'color' 00FF00"
-                        rowDescription.text = "desc"+parsedList[i].description
-                        rowLink.text = "link"+parsedList[i].link
 
-                        iLayout.addView(rowTitle)
-                        iLayout.addView(rowDescription)
-                        iLayout.addView(rowLink)
+                        if (rowTitle.text != "") {
+                            iLayout.addView(rowTitle)
+                        }
+                        if (rowDescription.text != "") {
+                            iLayout.addView(rowDescription)
+                        }
+                        if (rowLink.text != "") {
+                            iLayout.addView(rowLink)
+                        }
+                        try {
+                            if (imageLink != "") {
+                                Linkify.addLinks(rowLink, WEB_URLS)
+                                Picasso.with(this).load(imageLink).into(rowImage)
+                                iLayout.addView(rowImage)
+                            }
+                        } catch (e: Exception) {}
                 }
                 }catch(e: Exception){
                     var exceptionText = TextView(this)

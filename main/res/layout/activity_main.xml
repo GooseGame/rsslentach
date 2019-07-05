@@ -11,8 +11,10 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" android:id="@+id/rssScrollContainer"
             tools:layout_editor_absoluteY="8dp" tools:layout_editor_absoluteX="8dp">
+
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                      android:orientation="vertical" android:id="@+id/rssScrollLayout"/>
+                      android:orientation="vertical" android:id="@+id/rssScrollLayout">
+        </LinearLayout>
     </ScrollView>
     <Button
             android:id="@+id/addRSSButton"
