@@ -68,7 +68,12 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 if (name.equals("description", true)) {
-                    description = result
+
+                    description = result.substringBefore("<br>")
+                    image = result.substringAfter("<img src=").substring(1).substringBefore(">").substringBeforeLast('"')
+                    if (image.contains('"', true)) {
+                        image = image.substringBefore(" alt").substringBeforeLast('"')
+                        }
                     if (xmlPullParser.next() == XmlPullParser.TEXT) {
                         result = xmlPullParser.text
                     }
@@ -79,13 +84,12 @@ class MainActivity : AppCompatActivity() {
                         result = xmlPullParser.text
                     }
                 }
-                if ((name.equals("image", true)) || (name.equals("img", true))) {
-
-                    image = result
-                    if (xmlPullParser.next() == XmlPullParser.TEXT) {
-                        result = xmlPullParser.text
-                    }
-                }
+                //if ((name.equals("image", true)) || (name.equals("img", true))) {
+                  //  image = result.substringBefore("img src=").substringAfter(">")
+                    //if (xmlPullParser.next() == XmlPullParser.TEXT) {
+                      //  result = xmlPullParser.text
+                    //}
+                //}
                 if ((title != "") && (description != "")) {
                     if (isItem) {
                         items.add(RssFeedModel(title, link, description, image))
@@ -132,7 +136,6 @@ class MainActivity : AppCompatActivity() {
         StrictMode.setThreadPolicy(policy)
         val button: Button = findViewById(R.id.addRSSButton)
 
-        //var feedModelList: List<RssFeedModel>
 
 
 
@@ -157,8 +160,6 @@ class MainActivity : AppCompatActivity() {
                         var rowLink = TextView(this)
                         var imageLink = parsedList[i].image
                         var rowImage = ImageView(this)
-                        //var imageVal = BitmapFactory.decodeStream(imageLink.openConnection().getInputStream())
-                        //var rowImage: ImageView = ImageView.
                         rowTitle.text = parsedList[i].title
                         rowTitle.typeface = Typeface.DEFAULT_BOLD
                         rowDescription.text =  parsedList[i].description
@@ -171,9 +172,6 @@ class MainActivity : AppCompatActivity() {
                         if (rowDescription.text != "") {
                             iLayout.addView(rowDescription)
                         }
-                        if (rowLink.text != "") {
-                            iLayout.addView(rowLink)
-                        }
                         try {
                             if (imageLink != "") {
                                 Linkify.addLinks(rowLink, WEB_URLS)
@@ -181,6 +179,9 @@ class MainActivity : AppCompatActivity() {
                                 iLayout.addView(rowImage)
                             }
                         } catch (e: Exception) {}
+                        if (rowLink.text != "") {
+                            iLayout.addView(rowLink)
+                        }
                 }
                 }catch(e: Exception){
                     var exceptionText = TextView(this)
